@@ -25,7 +25,7 @@ def main():
     timestamp = datetime.now()
     data = json.loads(fetch())
     data["timeStamp"] = str(timestamp)
-    path = '/home/jibon/OptionData/'
+    path = ''
     filename = path + str(timestamp) + ".json"
 
     with open(filename, "w") as f:

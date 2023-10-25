@@ -1,6 +1,8 @@
 import requests
 import json
 from datetime import datetime
+import os
+import pandas as pd
 
 
 def fetch():
@@ -15,20 +17,43 @@ def fetch():
     data = requests.get(url, headers=headers)
     if data.status_code != 200:
         data = requests.get(url, headers=headers)
-        while data.status_code != 200:
+        count = 0
+        while data.status_code != 200 and count < 5:
+            count += 1
             data = requests.get(url, headers=headers)
 
     return data.text
 
+def _formatData(data):
+    list_of_dfs = [pd.DataFrame(d['PE'], index=[0]) for d in data['filtered']['data']]
+    df1 = pd.concat(list_of_dfs)
+    df1['bidType'] = 'PE'
 
-def main():
-    timestamp = datetime.now()
+    list_of_dfs = [pd.DataFrame(d['CE'], index=[0]) for d in data['filtered']['data']]
+    df2 = pd.concat(list_of_dfs)
+    df2['bidType'] = 'CE'
+
+    df = pd.concat([df1, df2], axis=0, ignore_index=True)
+
+def _action():
     data = json.loads(fetch())
+    timestamp = datetime.now()
     data["timeStamp"] = str(timestamp)
-    path = ''
-    filename = path + str(timestamp) + ".json"
+    path = f'./{timestamp.date()}/'
+    filename = path + str(timestamp.date()) + ' ' + str(timestamp.time()).replace(':', '-').split('.')[0] + ".json"
 
     with open(filename, "w") as f:
         f.write(json.dumps(data, ensure_ascii=False))
+
+def main():
+
+    ct = datetime.now()
+    
+    if ct.hour in range(9, 16) and ct.weekday() in range(0,5):
+        if not os.path.exists(str(ct.date())):
+            os.mkdir(str(ct.date())) 
+        _action()
+    else:
+        print("Market is closed now !")
 
 main()
